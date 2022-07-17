@@ -1,0 +1,164 @@
+用户行为 actionName
+进入发布云记页面    actionName=view
+添加或修改云记      actionName=addOrUpdate
+查询云集详情       actionName=detail
+删除云记          actionName=delete
+分页查询云记列表    actionName=list
+
+
+一、进入发布云记页面
+    前台
+        头部导航栏”发布云记“超链接的href
+            href="note?actionName=view"
+
+    后台
+        1.从session中获取用户对象
+        2.通过用户ID查询代英的类型列表
+        3.将类型列表设置到request请求域中
+        4.设置首页动态包含的页面值
+        5.请求转发跳转到index.jsp
+
+二、加载富文本编辑器
+    1.下载富文本编辑器的压缩包(UTF-8),解压压缩包
+    2.将解压后的目录中对应的utf8-jsp文件夹，copy到项目的static目录下
+    3.修改utf8-jsp文件夹的名称，设置为ueditor
+    4.将ueditor目录下的jsp目录下的lib目录中对应的jar包，在pom.xml中加载进来
+    5.修改配置文件
+        a.ueditor目录下的ueditor.config.js文件
+            设置编辑器资源文件的根路径
+            将20行的注释copy到22行
+                window.UEDITOR_HOME_URL = "/xxxx/xxxx/";
+            改为：
+                window.UEDITOR_HOME_URL = "/note/static/ueditor/";
+
+        b.ueditor目录下jsp目录中的config.json文件
+            修改第11行的图片访问前缀
+                "imageUrlPrefix": "", /* 图片访问路径前缀 */
+            改为：
+                "imageUrlPrefix": "/note", /* 图片访问路径前缀 */
+
+            修改12行的图片保存路径
+                "imagePathFormat": "//ueditor/jsp/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}",
+            改为：
+                "imagePathFormat": "/static/ueditor/jsp/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}",
+    6.使用富文本编辑器
+        1.引入相关的js文件 (先引入配置文件，在进入源码文件)
+                <!-- 配置文件 -->
+                <script type="text/javascript" src="static/ueditor/ueditor.config.js"></script>
+                <!-- 编辑器源码文件 -->
+                <script type="text/javascript" src="static/ueditor/ueditor.all.js"></script>
+        2.准备容器 （准备一个元素，设置id属性值）
+            加载富文本编辑器的容器
+            <textarea id="content" name="content"></textarea>
+        3.加载富文本编辑器
+            <script type="text/javascript">
+                    $(function (){
+                        //加载富文本编辑器UE.getEditor('容器id')
+                        var ue = UE.getEditor('content');
+                    })
+                </script>
+        4.自定义工具栏
+            ueditor.config.js文件中toolbar属性中
+
+三、发布云记
+    前台：
+        表示设置
+            设置表单的提交方式和地址
+            在隐藏于中设置用户行为actionName
+            设置表单元素的id域name属性值
+        表单校验
+            1.获取表单元素的值
+                获取下拉框选中的选项  .val()
+                获取文本框的值       .val()
+                获取富文本编辑器的内容
+                    ue.getContent() 获取富文本编辑器的内容(包含html标签)
+                    ue.getContentTxt() 获取富文本编辑器的内容(不包含html标签)
+            2.参数的非空判断
+                如果为空，提示用户，并return false
+            3.如果参数不为空，则return true ，提交表单
+    后台
+        web
+            1.接收参数(类型ID,标题,内容)
+            2.调用service方法,返回resultInfo对象
+            3.判断resultInfo对象的code值
+                code=1,成功
+                    重定向跳转到首页 index
+                code=0,失败
+                    将resultInfo对象设置到req作用域
+                    请求转发到note?actionName=view
+        service
+            1.设置回显对象 Note对象
+            1.参数的非空判断
+                为空,code=0,msg=xxx,result=note对象,返回resultInfo对象
+            2.调用dao层,添加云记记录,返回受影响的行数
+            3.判断受影响的行数
+                如果>0,code=1
+                <0,code=0,msg=xxx
+        dao
+            添加云记,返回受影响的行数
+
+四、分页查询云记列表
+    后台
+        web
+            1.接收参数（当前页，每页显示的数量）
+            2.获取session作用域中的user对象
+            3.调用service层查询方法，返回page对象
+            4.将page对象设置到request作用域中
+            5.设置首页动态包含的页面值
+            6.请求转发跳转到index.jsp
+
+        service
+            1.参数的非空校验
+                如果分页参数为空，则设置默认值
+            2.查询当前登录用户的云记数量，返回总记录数（long类型）
+            3.判断总记录数是否大于0
+            4.如果总记录数大于0，调用page类的带参构造，得到其他的分页参数
+            5.查询当前登录用户下当前页的数据列表，返回note集合
+            6.将note集合设置到page对象中
+            7.返回page对象
+
+        dao
+            查询当前登录用户的云记数量，返回总记录数
+            查询当前登录用户下当前页的数据列表，返回note集合
+
+五、查询云记详情
+    后台
+        web
+            1.接收参数（noteId）
+            2.调用service查询方法，返回Note对象
+            3.将Note对象设置到request请求域中
+            4.设置首页动态包含的页面值
+            5.请求转发跳转到index.jsp
+        service
+            1.参数的非空判断
+            2.调用dao层的查询，通过noteId查询note对象
+            3.返回note对象
+        dao
+            通过noteId查询note对象
+
+六、删除云记
+    前台
+        删除按钮绑定点击事件
+            1.弹出提示框询问用户是否确认删除
+            2.如果确认删除，发送ajax请求
+                删除失败，提示用户
+                删除成功，跳转首页
+
+    后台
+        web
+            1.接收参数（noteId）
+            2.调用service删除方法，返回状态吗
+            3.通过流将结果响应给ajax的回调函数（输出字符串）
+
+        service
+            1.判断参数
+            2.调用dao层的更新方法，返回受影响的行数
+            3.判断受影响的行数是否大于0
+                如果大于0，返回1，否则返回0
+
+        dao层
+            通过noteId删除云记记录，返回受影响的行数
+
+
+
+

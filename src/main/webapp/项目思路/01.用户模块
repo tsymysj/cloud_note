@@ -1,0 +1,217 @@
+用户模块
+    用户行为来区分         actionName
+        用户登录          actionName = "login"
+        进入个人中心       actionName = "userCenter"
+        加载头像          actionName = "userHead"
+        验证昵称唯一性     actionName = "checkNick"
+        修改用户信息      actionName = "updateUser"
+        用户推出        actionName = "logout"
+
+    在UserServlet的service方法中
+        1.获取用户行为
+            String actionName = request.getParameter("actionName");
+        2.判断用户行为，调整对应的方法
+            if("xxx".equals(actionName)){
+
+            }else if("".equals(actionName)){
+
+            }
+
+ 一、用户登录
+ ================前端实现=================
+        1.添加表单，设置表单属性
+            action="user" method="post" id="loginForm"
+        2.设置表单元素的属性值，修改id属性值
+            设置文本框和密码框的name属性值
+            设置复选框的name属性值和value属性值（如果未选中，获取不到value属性值）
+            设置隐藏域，传递用户行为 (name="actionName" value="login")
+        3.在config.js文件中，添加按钮的点击事件绑定的函数 checkLogin()
+            表单校验
+                1.获取表单元素的值
+                2.判断元素的值是否为空(引入util.js文件)
+                    如果为空，设置提示信息(通过设置span标签)，并return
+                3.如果不为空，则提交表单
+
+ ================后端实现=================
+        整体思路：
+            1.获取参数(姓名，密码)
+            2.参数的非空校验 （ResultInfo的封装类。用来封装响应的结果，状态码。提示信息，返回的对象）
+                如果为空
+                    设置ResultInfo对象的状态码和提示信息
+                    将ResultInfo对象设置到request作用域中
+                    请求转发跳转到登录页面
+                    return
+            3.如果不为空，同故宫用户名查询用户对象
+            4.判断用户对象是否为空
+                如果为空
+                    设置ResultInfo对象的状态码和提示信息
+                    将ResultInfo对象设置到request作用域中
+                    请求转发跳转到登录页面
+                    return
+            5.如果用户对象不为空，将数据库中查询到的用户对象的密码与前台传递的密码作比较(将密码加密后再进行比较)
+                如果密码不正确
+                    设置ResultInfo对象的状态码和提示信息
+                    将ResultInfo对象设置到request作用域中
+                    请求转发跳转到登录页面
+                    return
+            6.如果密码正确
+                将用户信息存到session作用域中
+                判断用户是否选择记住密码(rem的值是1)
+                    如果是，将用户姓名与密码存到cookie中，设置失效时间，并响应给客户端
+                    如果否，清空原有的cookie对象
+                重定向跳转到index页面
+
+
+        分层思想：
+            Web层：(控制层，接收参数，响应数据)
+                1.获取参数(姓名，密码)
+                2.调用Service层的方法，返回ResultInfo对象
+                3.判断是否登陆成功
+                    如果失败
+                        将ResultInfo对象设置到request作用域中
+                        请求转发跳转到登陆页面
+                    如果成功
+                        判断用户是否选择记住密码(rem的值是1)
+                             如果是，将用户姓名与密码存到cookie中，设置失效时间，并响应给客户端
+                             如果否，清空原有的cookie对象
+                        重定向跳转到index页面
+
+            Service层：(业务逻辑层：参数判断，业务逻辑处理)
+                1.判断参数是否为空
+                    如果为空
+                        设置ResultInfo对象的状态码和提示信息
+                        返回ResultInfo对象
+                2.如果不为空，通过用户名查询用户对象
+                3.判断用户对象是否为空
+                    如果为空
+                        设置ResultInfo对象的状态码和提示信息
+                        返回ResultInfo对象
+                4.如果用户对象不为空，将数据库中查询到的用户对象的密码与前台传递的密码作比较(将密码加密后再进行比较)
+                    如果密码不正确
+                        设置ResultInfo对象的状态码和提示信息
+                        return
+                    如果密码正确
+                        设置ResultInfo对象的状态码和提示信息
+                5.返回ResultInfo对象
+
+
+            Dao层：(数据访问层：数据库中的增删改查操作)
+                通过用户名查询用户对象，返回用户对象
+                    1.获取数据库连接
+                    2.定义sql语句
+                    3.预编译
+                    4.设置参数
+                    5.执行查询，返回结果集
+                    6.判断并分析结果集
+                    7.关闭资源
+
+
+
+二、用户退出
+    前端：
+        设置超链接的请求地址 user?actionName=logout
+    后台
+        1.销毁session对象
+        2.删除cookie对象
+        3.重定向跳转到登陆页面
+
+三、进入个人中心
+    前台
+        设置超链接的访问路径 user?actionName=userCenter
+        通过el表达式获取到session作用域中的用户信息
+    后台
+        1.设置首页动态包含的页面值
+        2.请求转发跳转到index.jsp
+
+
+四、加载头像
+    前台
+        设置img标签的src属性，请求后台加载头像
+            src="user?actionName=userHead&imageName=图片名称" （通过el表达式同session中获取）
+    后台
+        1.获取参数 （图片名称）
+        2.得到图片的存放路径  （request.getServletContext().getRealPathR("/")）
+        3.通过图片的完整路径，得到file对象
+        4.通过截取，得到图片的后缀
+        5.通过不同的图片后缀，设置不同的响应类型
+        6.利用还FileUtils的copyFile()方法，将图片拷贝给浏览器
+
+五、验证昵称的唯一性
+    前台：
+        昵称文本框的失焦事件  blur
+            1.获取昵称文本框的值
+            2.判断是否为空
+                为空，提示用户，禁用按钮，并return
+            3.判断昵称是否修改
+                从session作用域中获取昵称（如果在js中想要使用el表达式获取请求与对象，ji需要卸载JSP页面中，无法在js文件中获取）
+                如果昵称与session中的昵称一致，return
+            4.如果昵称修改
+                发送ajax请求后台，验证昵称是否可用
+                    如果不可用，提示用户，并禁用按钮
+                    如果可用，清空提示信息，按钮可用
+        昵称文本框的聚焦事件  focus
+            1.清空提示信息
+            2.按钮可用
+    后台：
+        web层：
+            1.获取参数（昵称）
+            2.从session作用域中获取用户对象，得到用户id
+            3.调用service层方法，得到返回的结果
+            4.通过字符输出流将结果相应给前台的ajax的回调函数
+            5.关闭资源
+        service层：
+            1.判断昵称是否为空
+                如果为空，返回"0"
+            2.调用dao层，通过用户id和昵称查询用户对象
+            3.判断用户对象存在
+                存在，返回"0"
+                不存在，返回"1"
+        dao层：
+            1.定义sql语句
+                通过用户ID查询除了当前登录用户之外是否有其他用户使用了该昵称
+                    指定昵称    nick （前台传递的参数）
+                    当前用户    userId(session作用域中user对象)
+                    String sql = "select * from tb_user where nick = ? and userId != ?"
+            2.设置参数集合
+            3.调用baseDao的查询方法
+
+六、修改用户信息
+    前台：
+        文件上传表单
+            1.表单
+                表单类型    enctype="nultipart/form-data"
+                提交类型    method="post"
+            2.表单元素
+                设置name属性值（昵称，心情，头像）
+                设置隐藏域存放用户行为actionName
+    后台：
+        web
+            注：文件上传必须在Servlet类上加上注解  @MultipartConfig
+            1.调用service层的方法，传递request对象作为参数，返回reslutInfo对象
+            2.将resultInfo对象村早request作用域中
+            3.请求转发跳转到个人中心页面 (user?actionName=userCenter)
+
+        service
+            1.获取参数 （昵称，心情）
+            2.参数的非空校验（判断必填参数）
+                如果昵称为空，将状态码和错误信息设置到resultInfo对象中，并return
+            3.从session作用域中获取用户对象（获取默认头像）
+            4.实现上传文件
+                1.获取Part对象，request.getPart("name")，name表示file文件域name属性值
+                2.通过part对象获取上传文件的文件名
+                3.判断文件名是否为空
+                4.获取文件存放的路径 WEB-INF/upload/目录
+                5.上传文件到指定目录
+            5.更新用户头像（将原本用户对象中默认头像设置为上传的文件名）
+            6.调用dao层，更新方法，返回受影响的行数
+            7.判断受影响的行数
+                如果>)，则修改成功，否则修改失败
+            8.返回resultInfo对象
+
+        dao
+            通过用户id修改用户信息
+            1.定义sql语句
+                String sql = "update tb_user set nick = ?,mood = ? , head = ? where userId = ?";
+            2.设置参数集合
+            3.调用BaseDao的更新方法，返回受影响的行数
+            4.返回调用
